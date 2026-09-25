@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SSE Lab · 解析 / 状态机 / 续传模拟</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">⚡ SSE Lab <span>Server-Sent Events 解析与续传模拟（无真实网络）</span></div>
+  <div id="fallbackBanner" class="fallback-banner" hidden></div>
+</header>
+
+<main class="layout">
+  <section class="panel input-panel">
+    <div class="panel-head">
+      <h2>① SSE 原始报文</h2>
+      <div class="btnrow">
+        <button id="btnLoadDemo" class="btn">载入演示脚本</button>
+        <button id="btnLoadStress" class="btn">生成 1 万条压测</button>
+        <label class="btn file-btn">本地加载 .txt/.sse<input id="fileInput" type="file" accept=".txt,.sse,.stream,text/plain" hidden></label>
+      </div>
+    </div>
+    <textarea id="rawInput" spellcheck="false" placeholder="在此粘贴 SSE 原始报文，或点击“本地加载”…&#10;支持模拟指令（写在注释里）：&#10;:!delay 1200   服务端静默&#10;:!disconnect  中途断流&#10;:!expect-id &lt;id&gt;  校验重连携带的 Last-Event-ID"></textarea>
+    <div class="panel-head sub">
+      <h3>② 模拟控制</h3>
+      <div class="btnrow">
+        <button id="btnStart" class="btn primary">▶ 开始模拟</button>
+        <button id="btnPause" class="btn" disabled>暂停</button>
+        <button id="btnStop" class="btn danger" disabled>停止</button>
+      </div>
+    </div>
+    <div class="opts">
+      <label>速度 <select id="optSpeed"><option value="1">1×</option><option value="4">4×</option><option value="16" selected>16×</option><option value="100">100×</option><option value="1000">1000×</option></select></label>
+      <label>分片字节 <input id="optChunk" type="number" value="64" min="1" max="100000"></label>
+      <label>混沌切分 <input id="optChaos" type="checkbox"></label>
+      <label>最大重连 <input id="optMaxRetry" type="number" value="8" min="1" style="width:52px"> 次</label>
+    </div>
+  </section>
+
+  <section class="panel status-panel">
+    <div class="state-row">
+      <div class="state-block">
+        <div class="state-label">状态机</div>
+        <div id="statePill" class="pill">IDLE</div>
+      </div>
+      <div class="kv"><span>Last-Event-ID</span><b id="lastEventId">（空）</b></div>
+      <div class="kv"><span>重连间隔</span><b id="retryMs">3000ms（默认）</b></div>
+      <div class="kv"><span>重连次数</span><b id="attempt">0</b></div>
+      <div class="kv"><span>会话</span><b id="sessions">0</b></div>
+    </div>
+    <div class="state-row stats">
+      <div class="kv"><span>接收事件</span><b id="stReceived">0</b></div>
+      <div class="kv"><span>已派发</span><b id="stDispatched">0</b></div>
+      <div class="kv"><span>重复去重</span><b id="stDup">0</b></div>
+      <div class="kv"><span>心跳注释</span><b id="stHb">0</b></div>
+      <div class="kv warn"><span>非法字段</span><b id="stInvalid">0</b></div>
+      <div class="kv warn"><span>非法 retry</span><b id="stBadRetry">0</b></div>
+      <div class="kv"><span>Worker 解析耗时</span><b id="stParseMs">0ms</b></div>
+    </div>
+    <div id="noticeBar" class="notice-bar"></div>
+  </section>
+
+  <section class="panel canvas-panel">
+    <div class="panel-head">
+      <h2>③ 时序可视化（Canvas）</h2>
+      <div class="legend">
+        <span><i style="background:#4da3ff"></i>事件</span>
+        <span><i style="background:#8a93a6"></i>心跳</span>
+        <span><i style="background:#e0b341"></i>连接</span>
+        <span><i style="background:#f0883e"></i>重连/退避</span>
+        <span><i style="background:#c066ff"></i>去重</span>
+        <span><i style="background:#ff6b6b"></i>异常</span>
+        <label class="follow"><input id="chkFollow" type="checkbox" checked> 自动跟随</label>
+      </div>
+    </div>
+    <div class="canvas-wrap">
+      <canvas id="timelineCanvas"></canvas>
+      <div id="canvasTooltip" class="canvas-tooltip" hidden></div>
+    </div>
+  </section>
+
+  <section class="panel log-panel">
+    <div class="panel-head">
+      <h2>④ 事件日志（IndexedDB 持久化）</h2>
+      <div class="btnrow">
+        <input id="filterInput" placeholder="过滤 id / 类型 / data 内容…">
+        <button id="btnExport" class="btn">导出 JSON</button>
+        <button id="btnClearDb" class="btn danger">清空日志</button>
+        <span id="dbCount" class="db-count"></span>
+      </div>
+    </div>
+    <div class="log-body">
+      <table class="log-table">
+        <thead><tr><th>#</th><th>时间</th><th>会话</th><th>event</th><th>id</th><th>data（截断）</th></tr></thead>
+        <tbody id="logTbody"></tbody>
+      </table>
+      <pre id="detailPane" class="detail-pane" hidden></pre>
+    </div>
+  </section>
+</main>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

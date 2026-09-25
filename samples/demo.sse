@@ -1,0 +1,56 @@
+: SSE Lab 演示报文（可通过“本地加载”导入）
+: 模拟指令写在注释里： :!delay / :!disconnect / :!expect-id
+retry: 800
+event: hello
+id: evt-1
+data: {"msg":"第一条事件"}
+
+: 心跳行（keep-alive 注释）
+
+data: 心跳之后的第一条事件
+
+id: evt-3
+data: 第一行
+data:第二行（冒号后无空格）
+data:  第三行保留一个前导空格
+
+bogusfield: 未知字段被忽略
+noColonLine
+data: 非法字段后仍正常解析
+
+retry: not-a-number
+retry: 12.5ms
+data: 两个非法 retry 被忽略，继续使用 800ms
+
+id: bad
+:!delay 1200
+id: evt-5
+data: 静默 1200ms 后的事件
+
+:!disconnect
+id: evt-6
+data: 断线前无空行 -> 本事件丢弃
+:!expect-id evt-6
+id: evt-7
+data: 重连成功
+
+id: evt-8
+data: 第一次
+
+id: evt-8
+data: 重复 ID，去重
+
+retry: 400
+id: evt-9
+data: 重连间隔更新为 400ms
+
+:!disconnect
+id: evt-10
+data: 同样未派发（但 id 行已更新 lastEventId）
+:!expect-id evt-10
+id: evt-11
+data: 第二次重连成功
+
+event: bye
+id: evt-12
+data: 演示完毕
