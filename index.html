@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SSE 解析器 · 状态机 · 续传模拟</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>
+  <h1>SSE 报文解析与事件流生命周期模拟</h1>
+  <p class="sub">解析 · 状态机 · 断线重连 · Last-Event-ID 续传（纯本地，不连接真实服务器）</p>
+</header>
+
+<div id="es-warning" class="banner warn hidden">
+  ⚠ 当前浏览器不支持 <code>EventSource</code>。本工具不依赖真实连接仍可运行；
+  真实场景下请降级为 <strong>轮询 / fetch 流式读取（ReadableStream）</strong> 或引入
+  <code>eventsource</code> polyfill。
+</div>
+<div id="parse-warning" class="banner info hidden"></div>
+
+<main>
+  <section class="panel input-panel">
+    <h2>① SSE 原始报文输入</h2>
+    <div class="toolbar">
+      <button data-sample="basic">基础事件</button>
+      <button data-sample="multiline">多行 data</button>
+      <button data-sample="heartbeat">注释/心跳</button>
+      <button data-sample="disconnect">中途断流 + 重连续传</button>
+      <button data-sample="dup">重复事件 ID</button>
+      <button data-sample="invalid">非法字段 / 非法 retry</button>
+      <button id="btn-stress">生成 1 万条压测</button>
+      <button id="btn-clear-input">清空</button>
+    </div>
+    <textarea id="sse-input" spellcheck="false"
+      placeholder="粘贴 SSE 原始报文…&#10;支持指令行（独占一行）：&#10;  @disconnect        模拟服务端断流&#10;  @retry-invalid     模拟服务端下发非法 retry"></textarea>
+    <div class="toolbar">
+      <button id="btn-run" class="primary">▶ 解析并模拟事件流</button>
+      <label>默认 retry(ms) <input id="default-retry" type="number" value="3000" min="0" step="100"></label>
+      <label>重连退避上限(ms) <input id="max-backoff" type="number" value="30000" min="0" step="1000"></label>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>② 连接状态机</h2>
+    <div id="state-machine" class="sm"></div>
+    <div id="sm-meta" class="sm-meta"></div>
+  </section>
+
+  <section class="panel">
+    <h2>③ 时序可视化（虚拟时间轴）</h2>
+    <canvas id="timeline" height="180"></canvas>
+    <div id="timeline-legend" class="legend"></div>
+  </section>
+
+  <section class="panel">
+    <h2>④ 事件日志（IndexedDB 持久化）</h2>
+    <div class="toolbar">
+      <span id="log-stats"></span>
+      <button id="btn-clear-log">清空日志库</button>
+    </div>
+    <div class="table-wrap">
+      <table id="event-table">
+        <thead><tr>
+          <th>#</th><th>虚拟时间(ms)</th><th>event</th><th>id</th><th>data</th><th>状态</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script src="js/db.js"></script>
+<script src="js/statemachine.js"></script>
+<script src="js/timeline.js"></script>
+<script src="js/samples.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
